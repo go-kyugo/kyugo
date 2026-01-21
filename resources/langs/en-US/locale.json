@@ -1,0 +1,9 @@
+{
+  "greeting": "Hello",
+  "app_name": "Youu Utils",
+  "welcome": "Welcome to Youu Utils",
+  "not_found": "Resource not found",
+  "internal_error": "Internal server error",
+  "invalid_body": "Invalid JSON body",
+  "validation_failed": "Validation failed"
+}

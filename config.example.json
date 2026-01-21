@@ -1,0 +1,29 @@
+{
+  "app":{
+    "name": "Youu Utils",
+    "environment": "development",
+    "debug": true,
+    "language": "en-US"
+  },
+  "server":{
+    "host": "localhost",
+    "port": 8080,
+    "read_timeout_seconds": 5,
+    "write_timeout_seconds": 10,
+    "max_upload_size_bytes": 10485760,
+    "cors": {
+      "allowed_origins": ["*"],
+      "allowed_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      "allowed_headers": ["Content-Type", "Authorization"]
+    }
+  },
+  "database": {
+    "type": "postgres",
+    "host": "localhost",
+    "port": 5432,
+    "user": "youu_user",
+    "password": "securepassword",
+    "dbname": "youu_db",
+    "sslmode": "disable"
+  }
+}

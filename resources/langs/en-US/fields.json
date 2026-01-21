@@ -1,0 +1,9 @@
+{
+  "email": "Email",
+  "password": "Password",
+  "name": "Name",
+  "errors": {
+    "required": "The {field} field is required.",
+    "invalid": "The {field} is invalid."
+  }
+}
