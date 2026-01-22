@@ -64,22 +64,37 @@ Example usage (snippet)
 -----------------------
 
 ```go
-rt := router.New()
-ctrl.RegisterRoutes(rt)
+    r := kyugo.NewRouter()
 
-opts := server.Options{
-    Config: &cfg.ConfigVar,
-    Handler: rt.Handler(),
-    DefaultMiddlewares: []func(http.Handler) http.Handler{
-        middleware.CORS(cfg.ConfigVar.Server.Cors),
-        middleware.Logger,
-    },
-    ReadTimeout:  time.Duration(cfg.ConfigVar.Server.ReadTimeoutSeconds) * time.Second,
-    WriteTimeout: time.Duration(cfg.ConfigVar.Server.WriteTimeoutSeconds) * time.Second,
-}
+	if err := cfg.LoadConfig("./config.json"); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
-srv, _ := server.New(opts)
-srv.Start()
+	ctrl := &controllers.Controller{}
+	ctrl.RegisterRoutes(r)
+
+	opts := kyugo.Options{
+		Config:  &cfg.ConfigVar,
+		Handler: r.Handler(),
+		DefaultMiddlewares: []func(http.Handler) http.Handler{
+			kyugo.CORS(cfg.ConfigVar.Server.Cors),
+			kyugo.LoggerMiddleware,
+		},
+		ReadTimeout:  time.Duration(cfg.ConfigVar.Server.ReadTimeoutSeconds) * time.Second,
+		WriteTimeout: time.Duration(cfg.ConfigVar.Server.WriteTimeoutSeconds) * time.Second,
+	}
+
+	srv, err := kyugo.NewServer(opts)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	registerServices(srv)
+	ctrl.Init(srv)
+
+	srv.Start()
 ```
 
 Controller signature (new style)
