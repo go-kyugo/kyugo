@@ -29,14 +29,16 @@ type ErrorEnvelope struct {
 }
 
 type SuccessEnvelope struct {
-	Status string      `json:"status"`
-	Data   interface{} `json:"data"`
+	Status  string      `json:"status"`
+	Code    int         `json:"code,omitempty"`
+	Message string      `json:"message,omitempty"`
+	Data    interface{} `json:"data"`
 }
 
-func Success(w http.ResponseWriter, data interface{}) {
+func Success(w http.ResponseWriter, code int, message string, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(SuccessEnvelope{Status: "success", Data: data})
+	_ = json.NewEncoder(w).Encode(SuccessEnvelope{Status: "success", Code: code, Message: message, Data: data})
 }
 
 // convertDetails attempts to turn various detail types into []ErrorDetail.
