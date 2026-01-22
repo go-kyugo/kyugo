@@ -17,7 +17,6 @@ import (
 )
 
 func main() {
-
 	r := pr.New()
 
 	if err := cfg.LoadConfig("./config.json"); err != nil {
@@ -29,8 +28,6 @@ func main() {
 	ctrl.RegisterRoutes(r)
 
 	opts := server.Options{
-		// pass full config to server.Options; server.New will prefer this
-		// when populating address, database, etc.
 		Config:  &cfg.ConfigVar,
 		Handler: r.Handler(),
 		DefaultMiddlewares: []func(http.Handler) http.Handler{
@@ -60,12 +57,4 @@ func registerServices(server *server.Server) {
 	productService := product.NewService()
 	server.RegisterService("user", userService)
 	server.RegisterService("product", productService)
-
-	// Services represent the Domain/Business layer.
-	// This is where the core logic and value of your application resides.
-	// This function is where you will register your services in the server's
-	// service container to make them accessible to dependents.
-	// https://goyave.dev/basics/services.html#service-container
-
-	// TODO register services
 }

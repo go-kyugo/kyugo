@@ -5,14 +5,9 @@ import (
 	"time"
 )
 
+type Service struct{}
 
-type Service struct {
-
-}
-
-func NewService() *Service {
-	return &Service{}
-}
+func NewService() *Service { return &Service{} }
 
 func (s *Service) GetByID(id int) (map[string]interface{}, error) {
 	if id <= 0 {

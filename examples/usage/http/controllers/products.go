@@ -13,7 +13,6 @@ import (
 	srv "kyugo.dev/kyugo/v1/server"
 )
 
-// ProductService defines the minimal service used by the controller.
 type ProductService interface {
 	GetByID(id int) (map[string]interface{}, error)
 }
@@ -22,7 +21,6 @@ type Controller struct {
 	ProductService ProductService
 }
 
-// Init injects services from the server into the controller.
 func (ctrl *Controller) Init(s *srv.Server) {
 	ctrl.ProductService = s.Service(service.Product).(ProductService)
 }
@@ -32,8 +30,6 @@ func (c *Controller) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) Create(w http.ResponseWriter, r *http.Request) {
-	// get validated request DTO
-
 	product := dto.Product{
 		ID:        1,
 		Name:      "New Product",
@@ -64,32 +60,26 @@ func (c *Controller) Create(w http.ResponseWriter, r *http.Request) {
 func (c *Controller) Show(w http.ResponseWriter, r *http.Request) {
 	pid := pr.Param(r, "productID")
 	if pid == "" {
-		response.Error(w, http.StatusBadRequest, "invalid_request", "missing_parameter", "productID obrigatório", nil)
+		response.Error(w, http.StatusBadRequest, "invalid_request", "missing_parameter", "productID required", nil)
 		return
 	}
 	id, err := strconv.Atoi(pid)
 	if err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid_request", "invalid_parameter", "productID inválido", nil)
+		response.Error(w, http.StatusBadRequest, "invalid_request", "invalid_parameter", "productID invalid", nil)
 		return
 	}
-	/*if c.UserService != nil {
-	    if data, err := c.UserService.GetByID(id); err == nil {
-	        response.Success(w, data)
-	        return
-	    }
-	}*/
 	response.Success(w, map[string]interface{}{"id": id})
 }
 
 func (c *Controller) Update(w http.ResponseWriter, r *http.Request) {
 	pid := pr.Param(r, "productID")
 	if pid == "" {
-		response.Error(w, http.StatusBadRequest, "invalid_request", "missing_parameter", "productID obrigatório", nil)
+		response.Error(w, http.StatusBadRequest, "invalid_request", "missing_parameter", "productID required", nil)
 		return
 	}
 	id, err := strconv.Atoi(pid)
 	if err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid_request", "invalid_parameter", "productID inválido", nil)
+		response.Error(w, http.StatusBadRequest, "invalid_request", "invalid_parameter", "productID invalid", nil)
 		return
 	}
 	response.Success(w, map[string]interface{}{"updated": true, "id": id})
@@ -98,19 +88,17 @@ func (c *Controller) Update(w http.ResponseWriter, r *http.Request) {
 func (c *Controller) Delete(w http.ResponseWriter, r *http.Request) {
 	pid := pr.Param(r, "productID")
 	if pid == "" {
-		response.Error(w, http.StatusBadRequest, "invalid_request", "missing_parameter", "productID obrigatório", nil)
+		response.Error(w, http.StatusBadRequest, "invalid_request", "missing_parameter", "productID required", nil)
 		return
 	}
 	id, err := strconv.Atoi(pid)
 	if err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid_request", "invalid_parameter", "productID inválido", nil)
+		response.Error(w, http.StatusBadRequest, "invalid_request", "invalid_parameter", "productID invalid", nil)
 		return
 	}
 	response.Success(w, map[string]interface{}{"deleted": true, "id": id})
 }
 
-// RegisterRoutes registers the controller routes into the provided router.
-// Uses Group (subrouter equivalent) and returns chainable validators.
 func (ctrl *Controller) RegisterRoutes(router *pr.Router) {
 	group := router.Group("/products")
 

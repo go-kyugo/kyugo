@@ -1,0 +1,61 @@
+package middleware
+
+import (
+	"fmt"
+	"net/http"
+	"time"
+
+	"kyugo.dev/kyugo/v1/logger"
+)
+
+// responseRecorder captures status and size written by the handler.
+type responseRecorder struct {
+	http.ResponseWriter
+	status int
+	size   int
+}
+
+func (r *responseRecorder) WriteHeader(status int) {
+	r.status = status
+	r.ResponseWriter.WriteHeader(status)
+}
+
+func (r *responseRecorder) Write(b []byte) (int, error) {
+	n, err := r.ResponseWriter.Write(b)
+	r.size += n
+	return n, err
+}
+
+// Logger logs each HTTP request in a single, console-friendly line.
+func Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rr := &responseRecorder{ResponseWriter: w, status: http.StatusOK}
+		start := time.Now()
+		next.ServeHTTP(rr, r)
+		dur := time.Since(start)
+
+		// Build a single-line, console-friendly message with sorted fields
+		// Order: duration_ms, method, path, remote_addr, size, status, status_text
+		statusText := http.StatusText(rr.status)
+		// colorize keys for easier scanning
+		dKey := logger.Colorize("duration_ms", "36")
+		mKey := logger.Colorize("method", "36")
+		pKey := logger.Colorize("path", "36")
+		raKey := logger.Colorize("remote_addr", "36")
+		sizeKey := logger.Colorize("size", "36")
+		statusKey := logger.Colorize("status", "36")
+		stKey := logger.Colorize("status_text", "36")
+
+		msg := fmt.Sprintf("HTTP.Request %s=%d %s=%s %s=%s %s=%s %s=%d %s=%d %s=\"%s\"",
+			dKey, dur.Milliseconds(),
+			mKey, r.Method,
+			pKey, r.URL.Path,
+			raKey, r.RemoteAddr,
+			sizeKey, rr.size,
+			statusKey, rr.status,
+			stKey, statusText,
+		)
+
+		logger.Info(msg, nil)
+	})
+}
