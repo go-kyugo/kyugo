@@ -64,37 +64,37 @@ Example usage (snippet)
 -----------------------
 
 ```go
-    r := kyugo.NewRouter()
+r := kyugo.NewRouter()
 
-	if err := cfg.LoadConfig("./config.json"); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+if err := cfg.LoadConfig("./config.json"); err != nil {
+	fmt.Fprintln(os.Stderr, err)
+	os.Exit(1)
+}
 
-	ctrl := &controllers.Controller{}
-	ctrl.RegisterRoutes(r)
+ctrl := &controllers.Controller{}
+ctrl.RegisterRoutes(r)
 
-	opts := kyugo.Options{
-		Config:  &cfg.ConfigVar,
-		Handler: r.Handler(),
-		DefaultMiddlewares: []func(http.Handler) http.Handler{
-			kyugo.CORS(cfg.ConfigVar.Server.Cors),
-			kyugo.LoggerMiddleware,
-		},
-		ReadTimeout:  time.Duration(cfg.ConfigVar.Server.ReadTimeoutSeconds) * time.Second,
-		WriteTimeout: time.Duration(cfg.ConfigVar.Server.WriteTimeoutSeconds) * time.Second,
-	}
+opts := kyugo.Options{
+	Config:  &cfg.ConfigVar,
+	Handler: r.Handler(),
+	DefaultMiddlewares: []func(http.Handler) http.Handler{
+		kyugo.CORS(cfg.ConfigVar.Server.Cors),
+		kyugo.LoggerMiddleware,
+	},
+	ReadTimeout:  time.Duration(cfg.ConfigVar.Server.ReadTimeoutSeconds) * time.Second,
+	WriteTimeout: time.Duration(cfg.ConfigVar.Server.WriteTimeoutSeconds) * time.Second,
+}
 
-	srv, err := kyugo.NewServer(opts)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+srv, err := kyugo.NewServer(opts)
+if err != nil {
+	fmt.Fprintln(os.Stderr, err)
+	os.Exit(1)
+}
 
-	registerServices(srv)
-	ctrl.Init(srv)
+registerServices(srv)
+ctrl.Init(srv)
 
-	srv.Start()
+srv.Start()
 ```
 
 Controller signature (new style)
