@@ -1,4 +1,4 @@
-package config
+package kyugo
 
 import (
 	"encoding/json"

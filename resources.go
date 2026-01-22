@@ -1,4 +1,4 @@
-package resources
+package kyugo
 
 import (
 	"encoding/json"

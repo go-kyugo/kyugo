@@ -1,4 +1,4 @@
-package router
+package kyugo
 
 import (
 	"bytes"
@@ -16,8 +16,6 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"kyugo.dev/kyugo/v1/registry"
-	"kyugo.dev/kyugo/v1/response"
-	"kyugo.dev/kyugo/v1/validation"
 )
 
 type routeEntry struct {
@@ -64,7 +62,7 @@ type Router struct {
 }
 
 // New creates a new Router instance.
-func New() *Router {
+func NewRouter() *Router {
 	return &Router{r: chi.NewRouter()}
 }
 
@@ -209,7 +207,10 @@ func registerAndChain(parent chi.Router, method, p string, h http.HandlerFunc) *
 					if !ok {
 						msg = "Invalid JSON body"
 					}
-					response.Error(w, http.StatusBadRequest, "INVALID_REQUEST", "INVALID_BODY", msg, nil)
+					ErrorResponse(w, http.StatusBadRequest, msg, nil, ErrorExtras{
+						Code: "INVALID_REQUEST",
+						Type: "INVALID_BODY",
+					})
 					return
 				}
 				if err := json.Unmarshal(b, &tmp); err != nil {
@@ -217,7 +218,10 @@ func registerAndChain(parent chi.Router, method, p string, h http.HandlerFunc) *
 					if !ok {
 						msg = "Invalid JSON body"
 					}
-					response.Error(w, http.StatusBadRequest, "INVALID_REQUEST", "INVALID_BODY", msg, nil)
+					ErrorResponse(w, http.StatusBadRequest, msg, nil, ErrorExtras{
+						Code: "INVALID_REQUEST",
+						Type: "INVALID_BODY",
+					})
 					return
 				}
 
@@ -234,11 +238,14 @@ func registerAndChain(parent chi.Router, method, p string, h http.HandlerFunc) *
 						if !ok {
 							msg = "Invalid JSON body"
 						}
-						response.Error(w, http.StatusBadRequest, "INVALID_REQUEST", "INVALID_BODY", msg, nil)
+						ErrorResponse(w, http.StatusBadRequest, msg, nil, ErrorExtras{
+							Code: "INVALID_REQUEST",
+							Type: "INVALID_BODY",
+						})
 						return
 					}
-					if err := validation.Validate(v); err != nil {
-						fields := validation.FormatValidationErrors(err, v)
+					if err := Validate(v); err != nil {
+						fields := FormatValidationErrors(err, v)
 
 						// localize each field message using resources with precedence:
 						// 1. fields.<field>.<rule>
@@ -302,7 +309,10 @@ func registerAndChain(parent chi.Router, method, p string, h http.HandlerFunc) *
 						if !ok || msg == "" {
 							msg = "Validation failed"
 						}
-						response.Error(w, http.StatusUnprocessableEntity, "VALIDATION_ERROR", "INVALID_ATTRIBUTES", msg, fields)
+						ErrorResponse(w, http.StatusUnprocessableEntity, msg, fields, ErrorExtras{
+							Code: "VALIDATION_ERROR",
+							Type: "INVALID_ATTRIBUTES",
+						})
 						return
 					}
 					// store validated value in request context for handler use

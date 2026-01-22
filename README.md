@@ -39,6 +39,16 @@ Core concepts
 - Registry: register handlers by name with `registry.Register(name, handler)` and the router can resolve them at runtime.
 - Services: register service instances in the server via `Server.RegisterService(name, instance)` and retrieve them with `Server.Service(name)`.
 
+New helpers and wrappers
+------------------------
+
+- `request.Request`: small wrapper with helpers like `Param`, `Message` and the package-level generic helper `BodyAsRequest[T]` to fetch validated request bodies.
+- `response.Response`: wrapper around `http.ResponseWriter` with helpers to standardize responses:
+    - `JSON(status int, message string, v interface{}, extras ...kyugo.ErrorExtras)` — writes a success envelope for 2xx statuses or an error envelope for non-2xx. For success responses the `code` in the JSON equals the HTTP status passed. For error responses pass an optional `kyugo.ErrorExtras` to control the `error.code` and `error.type` fields.
+    - `WriteDBError(err error)` — helper that writes an internal server error using the standard error envelope when `err != nil`.
+- `handler.Adapt`: adapter to convert controller methods with signature `func(*response.Response, *request.Request)` into `http.HandlerFunc` for router registration.
+- Logger: zerolog-backed console writer with short level codes and ANSI color support; request logger middleware emits a single console line with colored keys for fast scanning.
+
 Configuration structure
 -----------------------
 
@@ -72,8 +82,72 @@ srv, _ := server.New(opts)
 srv.Start()
 ```
 
+Controller signature (new style)
+--------------------------------
+
+Handlers can receive typed request/response wrappers. Example controller method:
+
+```go
+func (ctrl *Controller) Create(resp *kyugo.Response, req *kyugo.Request) {
+    // fetch validated body registered with router.ValidateBody
+    body, ok := kyugo.BodyAsRequest[*dto.CreateProductRequest](req)
+    if !ok {
+        // return a 400 error using the ErrorExtras to set error.code and error.type
+        resp.JSON(http.StatusBadRequest, "request body is required", nil, kyugo.ErrorExtras{
+            Code: "INVALID_REQUEST",
+            Type: "INVALID_BODY",
+        })
+        return
+    }
+    // localized message
+    msg, _ := req.Message("locale.product_created")
+    resp.JSON(http.StatusOK, msg, body)
+}
+```
+
+Notes
+-----
+- Ensure you registered the DTO in the route with `.ValidateBody(&dto.CreateProductRequest{})` so the router validates and populates the typed body.
+- To use the shorthand re-exports, import the top-level package:
+
+```go
+import kyugo "kyugo.dev/kyugo/v1"
+```
+
+Then you can reference `kyugo.Request`, `kyugo.Response`, `kyugo.Adapt`, etc.
+
+
 Where to look
 --------------
+
+Error envelopes
+---------------
+
+Error responses follow this structure:
+
+```json
+{
+    "status": "error",
+    "code": 400,
+    "error": {
+        "type": "INVALID_BODY",
+        "code": "INVALID_REQUEST",
+        "message": "Invalid JSON body",
+        "fields": [ /* optional field errors */ ],
+        "meta": { /* optional meta object */ }
+    }
+}
+```
+
+Use `ErrorExtras` to set the `error.code` and `error.type` values when calling `resp.JSON` or `ErrorResponse` directly. Example:
+
+```go
+// via resp.JSON
+resp.JSON(http.StatusBadRequest, "Invalid JSON body", nil, kyugo.ErrorExtras{Code: "INVALID_REQUEST", Type: "INVALID_BODY"})
+
+// or directly
+kyugo.ErrorResponse(w, http.StatusBadRequest, "Invalid JSON body", nil, kyugo.ErrorExtras{Code: "INVALID_REQUEST", Type: "INVALID_BODY"})
+```
 
 - Example application: [examples/usage](examples/usage)
 - Server implementation: [server/server.go](server/server.go)

@@ -1,4 +1,4 @@
-package server
+package kyugo
 
 import (
 	"context"
@@ -9,10 +9,8 @@ import (
 	"time"
 
 	cfg "kyugo.dev/kyugo/v1/config"
-	"kyugo.dev/kyugo/v1/database"
-	"kyugo.dev/kyugo/v1/logger"
-	"kyugo.dev/kyugo/v1/resources"
-	pr "kyugo.dev/kyugo/v1/router"
+	database "kyugo.dev/kyugo/v1/database"
+	logger "kyugo.dev/kyugo/v1/logger"
 )
 
 // Options configures the created server.
@@ -48,7 +46,7 @@ type Server struct {
 	svcMu    sync.RWMutex
 }
 
-func New(opts Options) (*Server, error) {
+func NewServer(opts Options) (*Server, error) {
 	// prefer options.Config values when available
 	var cfgSrc *cfg.Config
 	if opts.Config != nil {
@@ -86,8 +84,8 @@ func New(opts Options) (*Server, error) {
 	// prepare messages map (load resources once)
 	var msgs map[string]string
 	if cfgSrc != nil && cfgSrc.App.Language != "" {
-		_ = resources.LoadFromFS(os.DirFS("resources/langs"))
-		msgs = resources.GetAll(cfgSrc.App.Language)
+		_ = LoadFromFS(os.DirFS("resources/langs"))
+		msgs = GetAll(cfgSrc.App.Language)
 	}
 
 	// prepare base handler: prefer provided Handler, otherwise create router
@@ -96,14 +94,14 @@ func New(opts Options) (*Server, error) {
 	if opts.Handler != nil {
 		base = opts.Handler
 	} else {
-		rt := pr.New()
+		rt := NewRouter()
 		base = rt.Handler()
 	}
 
 	// if messages were loaded, wrap base to inject them into the request context
 	if msgs != nil {
 		h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), pr.MessagesKey, msgs)
+			ctx := context.WithValue(r.Context(), MessagesKey, msgs)
 			base.ServeHTTP(w, r.WithContext(ctx))
 		})
 	} else {

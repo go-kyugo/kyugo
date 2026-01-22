@@ -6,18 +6,16 @@ import (
 	"os"
 	"time"
 
+	"kyugo.dev/kyugo/v1"
 	cfg "kyugo.dev/kyugo/v1/config"
-	controllers "kyugo.dev/kyugo/v1/examples/usage/http/controllers"
-	product "kyugo.dev/kyugo/v1/examples/usage/services/product"
-	user "kyugo.dev/kyugo/v1/examples/usage/services/user"
-	"kyugo.dev/kyugo/v1/logger"
-	"kyugo.dev/kyugo/v1/middleware"
-	pr "kyugo.dev/kyugo/v1/router"
-	"kyugo.dev/kyugo/v1/server"
+	"kyugo.dev/kyugo/v1/example/http/controllers"
+	"kyugo.dev/kyugo/v1/example/services/product"
+	"kyugo.dev/kyugo/v1/example/services/user"
+	logger "kyugo.dev/kyugo/v1/logger"
 )
 
 func main() {
-	r := pr.New()
+	r := kyugo.NewRouter()
 
 	if err := cfg.LoadConfig("./config.json"); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -27,18 +25,18 @@ func main() {
 	ctrl := &controllers.Controller{}
 	ctrl.RegisterRoutes(r)
 
-	opts := server.Options{
+	opts := kyugo.Options{
 		Config:  &cfg.ConfigVar,
 		Handler: r.Handler(),
 		DefaultMiddlewares: []func(http.Handler) http.Handler{
-			middleware.CORS(cfg.ConfigVar.Server.Cors),
-			middleware.Logger,
+			kyugo.CORS(cfg.ConfigVar.Server.Cors),
+			kyugo.LoggerMiddleware,
 		},
 		ReadTimeout:  time.Duration(cfg.ConfigVar.Server.ReadTimeoutSeconds) * time.Second,
 		WriteTimeout: time.Duration(cfg.ConfigVar.Server.WriteTimeoutSeconds) * time.Second,
 	}
 
-	srv, err := server.New(opts)
+	srv, err := kyugo.NewServer(opts)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -50,7 +48,7 @@ func main() {
 	srv.Start()
 }
 
-func registerServices(server *server.Server) {
+func registerServices(server *kyugo.Server) {
 	logger.Info("Registering services", nil)
 
 	userService := user.NewService()

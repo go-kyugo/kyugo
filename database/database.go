@@ -1,4 +1,4 @@
-package database
+package kyugo
 
 import (
 	"database/sql"

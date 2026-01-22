@@ -1,12 +1,35 @@
-package middleware
+package kyugo
 
 import (
 	"fmt"
 	"net/http"
 	"time"
 
-	"kyugo.dev/kyugo/v1/logger"
+	cfg "kyugo.dev/kyugo/v1/config"
+	logger "kyugo.dev/kyugo/v1/logger"
 )
+
+// CORS returns a middleware that applies simple CORS headers based on config.
+func CORS(c cfg.CorsConfig) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if len(c.AllowedOrigins) > 0 {
+				w.Header().Set("Access-Control-Allow-Origin", c.AllowedOrigins[0])
+			} else {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+			}
+			if len(c.AllowedMethods) > 0 {
+				// join not required for minimal implementation
+				w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
+			}
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
 
 // responseRecorder captures status and size written by the handler.
 type responseRecorder struct {
@@ -27,7 +50,7 @@ func (r *responseRecorder) Write(b []byte) (int, error) {
 }
 
 // Logger logs each HTTP request in a single, console-friendly line.
-func Logger(next http.Handler) http.Handler {
+func LoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rr := &responseRecorder{ResponseWriter: w, status: http.StatusOK}
 		start := time.Now()

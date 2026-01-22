@@ -1,10 +1,8 @@
-package response
+package kyugo
 
 import (
 	"encoding/json"
 	"net/http"
-
-	"kyugo.dev/kyugo/v1/validation"
 )
 
 type ErrorDetail struct {
@@ -20,6 +18,7 @@ type ErrorBody struct {
 	Code    string        `json:"code"`
 	Message string        `json:"message"`
 	Fields  []ErrorDetail `json:"fields,omitempty"`
+	Meta    interface{}   `json:"meta,omitempty"`
 }
 
 type ErrorEnvelope struct {
@@ -35,7 +34,47 @@ type SuccessEnvelope struct {
 	Data    interface{} `json:"data"`
 }
 
-func Success(w http.ResponseWriter, code int, message string, data interface{}) {
+type ErrorExtras struct {
+	Code string
+	Type string
+}
+
+type Response struct {
+	W http.ResponseWriter
+	R *http.Request
+}
+
+// New creates a Response wrapper.
+func NewResponse(w http.ResponseWriter, r *http.Request) *Response {
+	return &Response{W: w, R: r}
+}
+
+// JSON writes a JSON response with the given status.
+func (resp *Response) JSON(status int, message string, v interface{}, extras ...ErrorExtras) {
+	resp.W.Header().Set("Content-Type", "application/json")
+	if status >= 200 && status < 300 {
+		SuccessResponse(resp.W, status, message, v)
+		return
+	}
+	// For non-2xx statuses use the Error envelope with a default HTTP code/message.
+
+	ErrorResponse(resp.W, status, message, nil, extras...)
+}
+
+// WriteDBError inspects an error and writes an internal server error
+// response if err != nil. Returns true when an error was written.
+func (resp *Response) WriteDBError(err error) bool {
+	if err == nil {
+		return false
+	}
+	ErrorResponse(resp.W, http.StatusInternalServerError, "internal_error", nil, ErrorExtras{
+		Code: "DB_ERROR",
+		Type: "DATABASE_ERROR",
+	})
+	return true
+}
+
+func SuccessResponse(w http.ResponseWriter, code int, message string, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(SuccessEnvelope{Status: "success", Code: code, Message: message, Data: data})
@@ -51,7 +90,7 @@ func convertDetails(details interface{}) []ErrorDetail {
 		return dd
 	}
 	// from validation package
-	if vdd, ok := details.([]validation.FieldError); ok {
+	if vdd, ok := details.([]FieldError); ok {
 		out := make([]ErrorDetail, 0, len(vdd))
 		for _, fe := range vdd {
 			out = append(out, ErrorDetail{Field: fe.Field, Code: fe.Code, Message: fe.Message})
@@ -65,7 +104,7 @@ func convertDetails(details interface{}) []ErrorDetail {
 			switch v := it.(type) {
 			case ErrorDetail:
 				out = append(out, v)
-			case validation.FieldError:
+			case FieldError:
 				out = append(out, ErrorDetail{Field: v.Field, Code: v.Code, Message: v.Message})
 			case map[string]interface{}:
 				ed := ErrorDetail{}
@@ -88,14 +127,35 @@ func convertDetails(details interface{}) []ErrorDetail {
 
 // Error builds a consistent error envelope. When `details` are provided they
 // are included under `error.fields`; otherwise that key is omitted.
-func Error(w http.ResponseWriter, code int, _type, _code, message string, details interface{}) {
+func ErrorResponse(w http.ResponseWriter, code int, message string, details interface{}, extras ...ErrorExtras) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 
-	eb := ErrorBody{Code: _code, Message: message, Type: _type}
+	eb := ErrorBody{Code: "", Message: message, Type: ""}
+	// If at least one extras entry is provided, use its values as overrides.
+	// Map ErrorExtras.Code -> ErrorBody.Type and ErrorExtras.Type -> ErrorBody.Code
+	if len(extras) > 0 {
+		if s := extras[0].Code; s != "" {
+			eb.Type = s
+		}
+		if s := extras[0].Type; s != "" {
+			eb.Code = s
+		}
+	}
+	// If a second extras entry is provided, it can override the first.
+	if len(extras) > 1 {
+		if s := extras[1].Code; s != "" {
+			eb.Type = s
+		}
+		if s := extras[1].Type; s != "" {
+			eb.Code = s
+		}
+	}
 	if d := convertDetails(details); len(d) > 0 {
 		eb.Fields = d
 	}
+	// If extras are provided, interpret them as override values for
+	// error `code` and `type` in that order: extras[0] -> code, extras[1] -> type.
 
 	env := ErrorEnvelope{Status: "error", Code: code, Error: eb}
 	_ = json.NewEncoder(w).Encode(env)

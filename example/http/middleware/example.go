@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"kyugo.dev/kyugo/v1/logger"
+	logger "kyugo.dev/kyugo/v1/logger"
 )
 
 // Example is a sample middleware used by the example controller chain.

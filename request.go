@@ -1,4 +1,4 @@
-package request
+package kyugo
 
 import (
 	"encoding/json"
@@ -6,8 +6,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-
-	"kyugo.dev/kyugo/v1/router"
 )
 
 // Request is a small wrapper around *http.Request providing convenience
@@ -17,7 +15,7 @@ type Request struct {
 }
 
 // New wraps an *http.Request.
-func New(r *http.Request) *Request {
+func NewRequest(r *http.Request) *Request {
 	return &Request{R: r}
 }
 
@@ -36,12 +34,12 @@ func BodyAsRequest[T any](r *Request) (T, bool) {
 	if r == nil || r.R == nil {
 		return zero, false
 	}
-	return router.BodyAs[T](r.R)
+	return BodyAs[T](r.R)
 }
 
 // Message looks up an application message (localization) for the request.
 func (r *Request) Message(key string) (string, bool) {
-	return router.Message(r.R, key)
+	return Message(r.R, key)
 }
 
 // BindJSON decodes the request body into v. Returns an error if decoding
