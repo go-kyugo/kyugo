@@ -28,7 +28,11 @@ func (c *Controller) Index(resp *kyugo.Response, req *kyugo.Request) {
 func (c *Controller) Create(resp *kyugo.Response, req *kyugo.Request) {
 	product, ok := kyugo.BodyAsRequest[*dto.CreateProductRequest](req)
 	if !ok {
-		resp.JSON(http.StatusBadRequest, "request body is required", nil, kyugo.ErrorExtras{
+		msg, ok := req.Message("locale.bad_request")
+		if !ok || msg == "" {
+			msg = "Bad Request"
+		}
+		resp.JSON(http.StatusBadRequest, msg, nil, kyugo.ErrorExtras{
 			Code: "BAD_REQUEST",
 			Type: "VALIDATION_ERROR",
 		})

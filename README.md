@@ -106,14 +106,16 @@ Handlers can receive typed request/response wrappers. Example controller method:
 func (ctrl *Controller) Create(resp *kyugo.Response, req *kyugo.Request) {
     // fetch validated body registered with router.ValidateBody
     body, ok := kyugo.BodyAsRequest[*dto.CreateProductRequest](req)
-    if !ok {
-        // return a 400 error using the ErrorExtras to set error.code and error.type
-        resp.JSON(http.StatusBadRequest, "request body is required", nil, kyugo.ErrorExtras{
-            Code: "INVALID_REQUEST",
-            Type: "INVALID_BODY",
-        })
-        return
-    }
+	if !ok {
+		msg, ok := req.Message("locale.bad_request")
+		if !ok || msg == "" {
+			msg = "Bad Request"
+		}
+		resp.JSON(http.StatusBadRequest, msg, nil, kyugo.ErrorExtras{
+			Code: "BAD_REQUEST",
+			Type: "VALIDATION_ERROR",
+		})
+	}
     // localized message
     msg, _ := req.Message("locale.product_created")
     resp.JSON(http.StatusOK, msg, body)
