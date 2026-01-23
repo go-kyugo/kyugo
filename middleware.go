@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	cfg "kyugo.dev/kyugo/v1/config"
-	logger "kyugo.dev/kyugo/v1/logger"
+	cfg "github.com/go-kyugo/kyugo/config"
+	logger "github.com/go-kyugo/kyugo/logger"
 )
 
 // CORS returns a middleware that applies simple CORS headers based on config.

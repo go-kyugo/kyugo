@@ -15,7 +15,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"kyugo.dev/kyugo/v1/registry"
+	"github.com/go-kyugo/kyugo/registry"
 )
 
 type routeEntry struct {

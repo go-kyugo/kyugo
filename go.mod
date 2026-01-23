@@ -1,4 +1,4 @@
-module kyugo.dev/kyugo/v1
+module github.com/go-kyugo/kyugo
 
 go 1.25.6
 

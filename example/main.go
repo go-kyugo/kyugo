@@ -6,12 +6,12 @@ import (
 	"os"
 	"time"
 
-	"kyugo.dev/kyugo/v1"
-	cfg "kyugo.dev/kyugo/v1/config"
-	"kyugo.dev/kyugo/v1/example/http/controller"
-	"kyugo.dev/kyugo/v1/example/service/product"
-	"kyugo.dev/kyugo/v1/example/service/user"
-	logger "kyugo.dev/kyugo/v1/logger"
+	"github.com/go-kyugo/kyugo"
+	cfg "github.com/go-kyugo/kyugo/config"
+	"github.com/go-kyugo/kyugo/example/http/controller"
+	"github.com/go-kyugo/kyugo/example/service/product"
+	"github.com/go-kyugo/kyugo/example/service/user"
+	logger "github.com/go-kyugo/kyugo/logger"
 )
 
 func main() {

@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	cfg "kyugo.dev/kyugo/v1/config"
-	database "kyugo.dev/kyugo/v1/database"
-	logger "kyugo.dev/kyugo/v1/logger"
+	cfg "github.com/go-kyugo/kyugo/config"
+	database "github.com/go-kyugo/kyugo/database"
+	logger "github.com/go-kyugo/kyugo/logger"
 )
 
 // Options configures the created server.

@@ -3,10 +3,10 @@ package controller
 import (
 	"net/http"
 
-	"kyugo.dev/kyugo/v1"
-	"kyugo.dev/kyugo/v1/example/dto"
-	"kyugo.dev/kyugo/v1/example/http/middleware"
-	"kyugo.dev/kyugo/v1/example/service"
+	"github.com/go-kyugo/kyugo"
+	"github.com/go-kyugo/kyugo/example/dto"
+	"github.com/go-kyugo/kyugo/example/http/middleware"
+	"github.com/go-kyugo/kyugo/example/service"
 )
 
 type ProductService interface {

@@ -8,7 +8,7 @@ import (
 
 	_ "github.com/lib/pq"
 
-	cfg "kyugo.dev/kyugo/v1/config"
+	cfg "github.com/go-kyugo/kyugo/config"
 )
 
 type DB struct {

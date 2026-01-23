@@ -128,7 +128,7 @@ Notes
 - To use the shorthand re-exports, import the top-level package:
 
 ```go
-import kyugo "kyugo.dev/kyugo/v1"
+import kyugo "github.com/go-kyugo/kyugo"
 ```
 
 Then you can reference `kyugo.Request`, `kyugo.Response`, `kyugo.Adapt`, etc.
