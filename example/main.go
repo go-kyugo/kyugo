@@ -9,8 +9,8 @@ import (
 	"kyugo.dev/kyugo/v1"
 	cfg "kyugo.dev/kyugo/v1/config"
 	"kyugo.dev/kyugo/v1/example/http/controllers"
-	"kyugo.dev/kyugo/v1/example/services/product"
-	"kyugo.dev/kyugo/v1/example/services/user"
+	"kyugo.dev/kyugo/v1/example/service/product"
+	"kyugo.dev/kyugo/v1/example/service/user"
 	logger "kyugo.dev/kyugo/v1/logger"
 )
 

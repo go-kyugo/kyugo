@@ -1,4 +1,4 @@
-package services
+package service
 
 const (
 	User    = "user"

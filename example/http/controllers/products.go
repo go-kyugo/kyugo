@@ -6,7 +6,7 @@ import (
 	"kyugo.dev/kyugo/v1"
 	"kyugo.dev/kyugo/v1/example/dto"
 	"kyugo.dev/kyugo/v1/example/http/middleware"
-	"kyugo.dev/kyugo/v1/example/services"
+	"kyugo.dev/kyugo/v1/example/service"
 )
 
 type ProductService interface {
@@ -18,7 +18,7 @@ type Controller struct {
 }
 
 func (ctrl *Controller) Init(s *kyugo.Server) {
-	ctrl.ProductService = s.Service(services.Product).(ProductService)
+	ctrl.ProductService = s.Service(service.Product).(ProductService)
 }
 
 func (c *Controller) Index(resp *kyugo.Response, req *kyugo.Request) {
