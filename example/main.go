@@ -8,7 +8,7 @@ import (
 
 	"kyugo.dev/kyugo/v1"
 	cfg "kyugo.dev/kyugo/v1/config"
-	"kyugo.dev/kyugo/v1/example/http/controllers"
+	"kyugo.dev/kyugo/v1/example/http/controller"
 	"kyugo.dev/kyugo/v1/example/service/product"
 	"kyugo.dev/kyugo/v1/example/service/user"
 	logger "kyugo.dev/kyugo/v1/logger"
@@ -22,7 +22,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctrl := &controllers.Controller{}
+	ctrl := &controller.Controller{}
 	ctrl.RegisterRoutes(r)
 
 	opts := kyugo.Options{
