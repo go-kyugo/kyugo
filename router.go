@@ -62,12 +62,31 @@ func RegisterHandlerName(method, p, handlerName string) {
 // Router is a lightweight wrapper around an underlying chi router that
 // exposes a small, fluent API similar to the example you provided.
 type Router struct {
-	r chi.Router
+	r      chi.Router
+	server *Server
 }
 
 // New creates a new Router instance.
 func NewRouter() *Router {
 	return &Router{r: chi.NewRouter()}
+}
+
+// Registrer is implemented by controllers/components that need to be
+// initialized with the server and register routes on a Router.
+type Registrer interface {
+	Init(*Server)
+	RegisterRoutes(*Router)
+}
+
+// Controller initializes the provided Registrer with the server and
+// calls its RegisterRoutes method so it can register routes on this router.
+func (rt *Router) Controller(controller Registrer) *Router {
+	if rt == nil || controller == nil {
+		return rt
+	}
+	controller.Init(rt.server)
+	controller.RegisterRoutes(rt)
+	return rt
 }
 
 // Convenience methods on Router so callers can register routes directly

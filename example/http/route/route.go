@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-kyugo/kyugo"
+	"github.com/go-kyugo/kyugo/example/http/controller/products"
 )
 
 // Routing is an essential part of any Kyugo application.
@@ -24,6 +25,8 @@ func Register(server *kyugo.Server, router *kyugo.Router) {
 		name := req.Param("name")
 		resp.JSON(http.StatusOK, "ok", map[string]string{"message": "Hello, " + name + "!"})
 	})
+
+	router.Controller(products.NewController())
 
 	// 	name := request.PathParam("name")
 }

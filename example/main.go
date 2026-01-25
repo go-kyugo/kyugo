@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-kyugo/kyugo"
 	cfg "github.com/go-kyugo/kyugo/config"
-	"github.com/go-kyugo/kyugo/example/http/controller"
 	"github.com/go-kyugo/kyugo/example/http/route"
 	"github.com/go-kyugo/kyugo/example/service/product"
 	"github.com/go-kyugo/kyugo/example/service/user"
@@ -20,8 +19,6 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
-	ctrl := &controller.Controller{}
 
 	opts := kyugo.Options{
 		Config:  &cfg.ConfigVar,
@@ -41,9 +38,9 @@ func main() {
 	}
 
 	registerServices(srv)
+
 	// register application routes (route.Register is defined in example/http/route)
-	srv.RegisterRoutes(route.Register, ctrl)
-	ctrl.Init(srv)
+	srv.RegisterRoutes(route.Register)
 
 	srv.Start()
 }

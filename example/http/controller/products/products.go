@@ -1,4 +1,4 @@
-package controller
+package products
 
 import (
 	"net/http"
@@ -14,11 +14,17 @@ type ProductService interface {
 }
 
 type Controller struct {
+	kyugo.Component
 	ProductService ProductService
+}
+
+func NewController() *Controller {
+	return &Controller{}
 }
 
 func (ctrl *Controller) Init(s *kyugo.Server) {
 	ctrl.ProductService = s.Service(service.Product).(ProductService)
+	ctrl.Component.Init(s)
 }
 
 func (c *Controller) Index(resp *kyugo.Response, req *kyugo.Request) {

@@ -127,6 +127,9 @@ func NewServer(opts Options) (*Server, error) {
 
 	s := &Server{srv: srv, logger: std, services: make(map[string]interface{})}
 	s.router = rt
+	if rt != nil {
+		rt.server = s
+	}
 
 	// connect database if present in config
 	if cfgSrc != nil {
