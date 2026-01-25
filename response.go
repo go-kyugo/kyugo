@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 type ErrorDetail struct {
@@ -95,8 +96,27 @@ func (resp *Response) ServeFile(filePath string) error {
 // Attachment streams a file as an attachment (forces download) with the
 // provided filename. It sets an appropriate Content-Type when possible.
 func (resp *Response) Attachment(filePath, filename string) error {
-	if resp == nil || resp.W == nil || resp.R == nil {
-		return fmt.Errorf("nil response/request")
+	if resp == nil || resp.W == nil {
+		return fmt.Errorf("nil response")
+	}
+
+	// Prefer in-memory resource when available
+	if b, ok := GetResource(filePath); ok {
+		ct := mime.TypeByExtension(filepath.Ext(filePath))
+		if ct == "" {
+			ct = http.DetectContentType(b)
+		}
+		resp.W.Header().Set("Content-Type", ct)
+		resp.W.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+		resp.W.Header().Set("Content-Length", strconv.Itoa(len(b)))
+		resp.W.WriteHeader(http.StatusOK)
+		_, _ = resp.W.Write(b)
+		return nil
+	}
+
+	// Fallback to disk; require request for ServeContent fallback
+	if resp.R == nil {
+		return fmt.Errorf("nil request for Attachment fallback")
 	}
 	f, err := os.Open(filePath)
 	if err != nil {
