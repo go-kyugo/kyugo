@@ -22,7 +22,11 @@ func (ctrl *Controller) Init(s *kyugo.Server) {
 }
 
 func (c *Controller) Index(resp *kyugo.Response, req *kyugo.Request) {
-	//resp.JSON(http.StatusOK, map[string]interface{}{"list": []int{1, 2, 3}})
+	msg, ok := req.Message("locale.product_created")
+	if !ok || msg == "" {
+		msg = "Product created"
+	}
+	resp.JSON(http.StatusOK, msg, map[string]interface{}{"list": []int{1, 2, 3}})
 }
 
 func (c *Controller) Create(resp *kyugo.Response, req *kyugo.Request) {
@@ -64,8 +68,12 @@ func (c *Controller) Create(resp *kyugo.Response, req *kyugo.Request) {
 }
 
 func (c *Controller) Show(resp *kyugo.Response, req *kyugo.Request) {
-
-	//resp.JSON(http.StatusOK, map[string]interface{}{"id": id})
+	id := req.Param("productID")
+	msg, ok := req.Message("locale.product_created")
+	if !ok || msg == "" {
+		msg = "Product created"
+	}
+	resp.JSON(http.StatusOK, msg, map[string]interface{}{"id": id})
 }
 
 func (c *Controller) Update(resp *kyugo.Response, req *kyugo.Request) {
@@ -81,9 +89,9 @@ func (c *Controller) Delete(resp *kyugo.Response, req *kyugo.Request) {
 func (ctrl *Controller) RegisterRoutes(router *kyugo.Router) {
 	group := router.Group("/products")
 
-	group.Get("/", kyugo.Adapt(ctrl.Index)).ValidateQuery(nil)
-	group.Post("/", kyugo.Adapt(ctrl.Create)).ValidateBody(&dto.CreateProductRequest{}).Middleware(middleware.Example)
-	group.Get("/{productID:[0-9]+}", kyugo.Adapt(ctrl.Show))
-	group.Patch("/{productID:[0-9]+}", kyugo.Adapt(ctrl.Update)).ValidateBody(&dto.CreateProductRequest{})
-	group.Delete("/{productID:[0-9]+}", kyugo.Adapt(ctrl.Delete))
+	group.Get("/", ctrl.Index).ValidateQuery(nil)
+	group.Post("/", ctrl.Create).ValidateBody(&dto.CreateProductRequest{}).Middleware(middleware.Example)
+	group.Get("/{productID:[0-9]+}", ctrl.Show)
+	group.Patch("/{productID:[0-9]+}", ctrl.Update).ValidateBody(&dto.CreateProductRequest{})
+	group.Delete("/{productID:[0-9]+}", ctrl.Delete)
 }

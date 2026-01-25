@@ -9,25 +9,23 @@ import (
 	"github.com/go-kyugo/kyugo"
 	cfg "github.com/go-kyugo/kyugo/config"
 	"github.com/go-kyugo/kyugo/example/http/controller"
+	"github.com/go-kyugo/kyugo/example/http/route"
 	"github.com/go-kyugo/kyugo/example/service/product"
 	"github.com/go-kyugo/kyugo/example/service/user"
 	logger "github.com/go-kyugo/kyugo/logger"
 )
 
 func main() {
-	r := kyugo.NewRouter()
-
 	if err := cfg.LoadConfig("./config.json"); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	ctrl := &controller.Controller{}
-	ctrl.RegisterRoutes(r)
 
 	opts := kyugo.Options{
 		Config:  &cfg.ConfigVar,
-		Handler: r.Handler(),
+		Handler: nil,
 		DefaultMiddlewares: []func(http.Handler) http.Handler{
 			kyugo.CORS(cfg.ConfigVar.Server.Cors),
 			kyugo.LoggerMiddleware,
@@ -43,6 +41,8 @@ func main() {
 	}
 
 	registerServices(srv)
+	// register application routes (route.Register is defined in example/http/route)
+	srv.RegisterRoutes(route.Register, ctrl)
 	ctrl.Init(srv)
 
 	srv.Start()

@@ -44,6 +44,7 @@ type Server struct {
 	// services holds arbitrary service instances registered with the server.
 	services map[string]interface{}
 	svcMu    sync.RWMutex
+	router   *Router
 }
 
 func NewServer(opts Options) (*Server, error) {
@@ -91,10 +92,11 @@ func NewServer(opts Options) (*Server, error) {
 	// prepare base handler: prefer provided Handler, otherwise create router
 	var h http.Handler
 	var base http.Handler
+	var rt *Router
 	if opts.Handler != nil {
 		base = opts.Handler
 	} else {
-		rt := NewRouter()
+		rt = NewRouter()
 		base = rt.Handler()
 	}
 
@@ -123,6 +125,7 @@ func NewServer(opts Options) (*Server, error) {
 	}
 
 	s := &Server{srv: srv, logger: std, services: make(map[string]interface{})}
+	s.router = rt
 
 	// connect database if present in config
 	if cfgSrc != nil {
@@ -137,6 +140,33 @@ func NewServer(opts Options) (*Server, error) {
 	}
 
 	return s, nil
+}
+
+// RegisterRoutes registers application routes.
+// The caller may supply a registration function (usually defined in the
+// application) which has the signature `func(*Server, *Router)` to perform
+// additional route setup. Any provided controllers that implement the
+// `RegisterRoutes(*Router)` method will also be invoked.
+func (s *Server) RegisterRoutes(register func(*Server, *Router), ctrls ...interface{}) {
+	if s == nil || s.router == nil {
+		return
+	}
+	if register != nil {
+		register(s, s.router)
+	}
+	for _, c := range ctrls {
+		if r, ok := c.(interface{ RegisterRoutes(*Router) }); ok {
+			r.RegisterRoutes(s.router)
+		}
+	}
+}
+
+// Router returns the internal router when available.
+func (s *Server) Router() *Router {
+	if s == nil {
+		return nil
+	}
+	return s.router
 }
 
 // ListenAndServe starts the HTTP server.

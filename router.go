@@ -27,6 +27,10 @@ type routeEntry struct {
 var (
 	mu     sync.RWMutex
 	routes []routeEntry
+	// name maps: allow naming routes for reverse lookups
+	nameMu    sync.RWMutex
+	nameToKey = make(map[string]string) // name -> key (METHOD path)
+	keyToPath = make(map[string]string) // key -> cleaned path template
 	// validateBodyMap maps route keys to an optional DTO type to validate.
 	validateBodyMu  sync.RWMutex
 	validateBodyMap = make(map[string]reflect.Type)
@@ -64,6 +68,24 @@ type Router struct {
 // New creates a new Router instance.
 func NewRouter() *Router {
 	return &Router{r: chi.NewRouter()}
+}
+
+// Convenience methods on Router so callers can register routes directly
+// without creating a Group first: `r.Get(...)`, `r.Post(...)`, etc.
+func (rt *Router) Get(p string, h interface{}, mws ...func(http.Handler) http.Handler) *RouteChain {
+	return rt.Group("/").Get(p, h, mws...)
+}
+
+func (rt *Router) Post(p string, h interface{}, mws ...func(http.Handler) http.Handler) *RouteChain {
+	return rt.Group("/").Post(p, h, mws...)
+}
+
+func (rt *Router) Patch(p string, h interface{}, mws ...func(http.Handler) http.Handler) *RouteChain {
+	return rt.Group("/").Patch(p, h, mws...)
+}
+
+func (rt *Router) Delete(p string, h interface{}, mws ...func(http.Handler) http.Handler) *RouteChain {
+	return rt.Group("/").Delete(p, h, mws...)
 }
 
 // Handler returns the underlying http.Handler to be used with ListenAndServe.
@@ -176,13 +198,50 @@ func (rc *RouteChain) Middleware(mws ...func(http.Handler) http.Handler) *RouteC
 	return rc
 }
 
+// Name assigns a stable name to the previously-registered route so it can
+// be looked up for reverse URL generation. Call it like:
+//
+//	r.Get("/users/{id}", handler).Name("user.show")
+func (rc *RouteChain) Name(name string) *RouteChain {
+	if rc == nil || rc.key == "" || name == "" {
+		return rc
+	}
+	nameMu.Lock()
+	nameToKey[name] = rc.key
+	nameMu.Unlock()
+	return rc
+}
+
+// convert handler provided by caller to an http.HandlerFunc. Supported types:
+// - http.HandlerFunc
+// - func(*Response, *Request)
+func handlerToHTTP(h interface{}) http.HandlerFunc {
+	switch v := h.(type) {
+	case http.HandlerFunc:
+		return v
+	case func(*Response, *Request):
+		return Adapt(v)
+	default:
+		return func(w http.ResponseWriter, r *http.Request) {
+			http.NotFound(w, r)
+		}
+	}
+}
+
 // helper to register and return a RouteChain
-func registerAndChain(parent chi.Router, method, p string, h http.HandlerFunc) *RouteChain {
+func registerAndChain(parent chi.Router, method, p string, h interface{}) *RouteChain {
 	// convert {name:regex} -> {name} so chi matches the route
 	re := regexp.MustCompile(`\{([a-zA-Z0-9_]+):[^}]+\}`)
 	cleaned := re.ReplaceAllString(p, `{$1}`)
 
 	key := strings.ToUpper(method) + " " + cleaned
+
+	// store cleaned path for potential reverse lookups
+	nameMu.Lock()
+	keyToPath[key] = cleaned
+	nameMu.Unlock()
+
+	hf := handlerToHTTP(h)
 
 	parent.Method(strings.ToUpper(method), cleaned, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// baseHandler performs body validation (if configured) and then
@@ -324,7 +383,7 @@ func registerAndChain(parent chi.Router, method, p string, h http.HandlerFunc) *
 				r.Body = io.NopCloser(bytes.NewReader(b))
 			}
 
-			h(w, r)
+			hf(w, r)
 		})
 
 		// fetch any middleware registered for this route and wrap the base
@@ -344,33 +403,27 @@ func registerAndChain(parent chi.Router, method, p string, h http.HandlerFunc) *
 }
 
 // Get registers a GET handler under the group's prefix.
-func (g *Group) Get(p string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) *RouteChain {
+func (g *Group) Get(p string, h interface{}, mws ...func(http.Handler) http.Handler) *RouteChain {
 	full := join(g.prefix, p)
 	return registerAndChain(g.parent.With(mws...), "GET", full, h)
 }
 
 // Post registers a POST handler under the group's prefix.
-func (g *Group) Post(p string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) *RouteChain {
+func (g *Group) Post(p string, h interface{}, mws ...func(http.Handler) http.Handler) *RouteChain {
 	full := join(g.prefix, p)
 	return registerAndChain(g.parent.With(mws...), "POST", full, h)
 }
 
 // Patch registers a PATCH handler under the group's prefix.
-func (g *Group) Patch(p string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) *RouteChain {
+func (g *Group) Patch(p string, h interface{}, mws ...func(http.Handler) http.Handler) *RouteChain {
 	full := join(g.prefix, p)
 	return registerAndChain(g.parent.With(mws...), "PATCH", full, h)
 }
 
 // Delete registers a DELETE handler under the group's prefix.
-func (g *Group) Delete(p string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) *RouteChain {
+func (g *Group) Delete(p string, h interface{}, mws ...func(http.Handler) http.Handler) *RouteChain {
 	full := join(g.prefix, p)
 	return registerAndChain(g.parent.With(mws...), "DELETE", full, h)
-}
-
-// Param returns a URL parameter value by name. It delegates to chi.URLParam
-// but keeps handlers free from importing chi directly.
-func Param(r *http.Request, name string) string {
-	return chi.URLParam(r, name)
 }
 
 // BodyAs retrieves a previously-validated request body (set by ValidateBody)
@@ -419,4 +472,40 @@ func Message(r *http.Request, key string) (string, bool) {
 		}
 	}
 	return zero, false
+}
+
+// URLFor builds a path for a named route using the provided params map.
+// Parameters replace placeholders like `{id}` or `{id:regex}` in the route
+// template. Returns the built path and true on success, empty string and
+// false when the name was not found or required params are missing.
+func URLFor(name string, params map[string]string) (string, bool) {
+	if name == "" {
+		return "", false
+	}
+	nameMu.RLock()
+	key, ok := nameToKey[name]
+	if !ok {
+		nameMu.RUnlock()
+		return "", false
+	}
+	tpl, ok2 := keyToPath[key]
+	nameMu.RUnlock()
+	if !ok2 {
+		return "", false
+	}
+
+	// replace placeholders {name} or {name:regex} with params[name]
+	re := regexp.MustCompile(`\{([a-zA-Z0-9_]+)(:[^}]+)?\}`)
+	out := re.ReplaceAllStringFunc(tpl, func(m string) string {
+		parts := re.FindStringSubmatch(m)
+		if len(parts) >= 2 {
+			k := parts[1]
+			if v, ok := params[k]; ok {
+				return v
+			}
+		}
+		// missing param -> empty string
+		return ""
+	})
+	return out, true
 }
