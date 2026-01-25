@@ -2,7 +2,11 @@ package kyugo
 
 import (
 	"encoding/json"
+	"fmt"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 type ErrorDetail struct {
@@ -59,6 +63,59 @@ func (resp *Response) JSON(status int, message string, v interface{}, extras ...
 	// For non-2xx statuses use the Error envelope with a default HTTP code/message.
 
 	ErrorResponse(resp.W, status, message, nil, extras...)
+}
+
+// ServeFile serves a file from disk using http.ServeFile. Helpful for
+// serving static HTML or other files directly.
+func (resp *Response) ServeFile(filePath string) error {
+	if resp == nil || resp.W == nil {
+		return fmt.Errorf("nil response")
+	}
+
+	// prefer in-memory resource when available
+	if b, ok := GetResource(filePath); ok {
+		ct := mime.TypeByExtension(filepath.Ext(filePath))
+		if ct == "" {
+			ct = http.DetectContentType(b)
+		}
+		resp.W.Header().Set("Content-Type", ct)
+		resp.W.WriteHeader(http.StatusOK)
+		_, _ = resp.W.Write(b)
+		return nil
+	}
+
+	// fallback to disk; require request for ServeFile
+	if resp.R == nil {
+		return fmt.Errorf("nil request for ServeFile fallback")
+	}
+	http.ServeFile(resp.W, resp.R, filePath)
+	return nil
+}
+
+// Attachment streams a file as an attachment (forces download) with the
+// provided filename. It sets an appropriate Content-Type when possible.
+func (resp *Response) Attachment(filePath, filename string) error {
+	if resp == nil || resp.W == nil || resp.R == nil {
+		return fmt.Errorf("nil response/request")
+	}
+	f, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return err
+	}
+
+	ct := mime.TypeByExtension(filepath.Ext(filePath))
+	if ct == "" {
+		ct = "application/octet-stream"
+	}
+	resp.W.Header().Set("Content-Type", ct)
+	resp.W.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	http.ServeContent(resp.W, resp.R, filename, fi.ModTime(), f)
+	return nil
 }
 
 // WriteDBError inspects an error and writes an internal server error

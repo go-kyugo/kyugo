@@ -84,8 +84,9 @@ func NewServer(opts Options) (*Server, error) {
 
 	// prepare messages map (load resources once)
 	var msgs map[string]string
+	// load all resources from repository root so handlers can serve files
+	_ = LoadResources(os.DirFS("resources"))
 	if cfgSrc != nil && cfgSrc.App.Language != "" {
-		_ = LoadFromFS(os.DirFS("resources/langs"))
 		msgs = GetAll(cfgSrc.App.Language)
 	}
 
