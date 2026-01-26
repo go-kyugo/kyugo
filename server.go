@@ -133,14 +133,14 @@ func NewServer(opts Options) (*Server, error) {
 
 	// connect database if present in config
 	if cfgSrc != nil {
-		/*if cfgSrc.Database.Type != "" {
+		if cfgSrc.Database.Type != "" {
 			db, err := database.ConnectFromConfig(cfgSrc.Database)
 			if err != nil {
 				return nil, err
 			}
 			s.DB = db
 			database.SetDefault(db)
-		}*/
+		}
 	}
 
 	return s, nil
